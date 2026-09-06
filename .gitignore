@@ -1,0 +1,10 @@
+# Eseguibili e file oggetto compilati in C
+client
+server
+*.o
+*.exe
+*.out
+
+# File di sistema
+.DS_Store
+Thumbs.db
