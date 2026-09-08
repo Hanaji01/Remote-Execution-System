@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Esecuzione Remota
 
 Progetto di Laboratorio di Sistemi Operativi (a.a. 2025-26).
