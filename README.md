@@ -82,4 +82,4 @@ residuo in `/tmp`.
   dell'intera applicazione.
 - L'applicazione non richiede privilegi di root né un ambiente
   grafico; il socket viene creato in `/tmp`.
-=======
+
