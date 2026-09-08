@@ -83,6 +83,3 @@ residuo in `/tmp`.
 - L'applicazione non richiede privilegi di root né un ambiente
   grafico; il socket viene creato in `/tmp`.
 =======
-# Remote-Execution-System
-> **Remote Execution System** is a lightweight C-based client-server application designed to handle remote command execution and network communication. It features modular client and server components, shared headers, and automated deployment scripts.
->>>>>>> 36e923408b5418b90482a634f2d8e5ea152b9c39
