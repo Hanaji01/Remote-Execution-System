@@ -1,85 +1,59 @@
-# Esecuzione Remota
+# Remote Execution System
 
-Progetto di Laboratorio di Sistemi Operativi (a.a. 2025-26).
+A client-server application in C that runs shell commands on behalf of remote clients over Unix domain sockets. I wrote it for the Operating Systems Lab course (University of Perugia, 2025/26).
 
-Implementa un'applicazione client-server per l'esecuzione remota di
-comandi shell, secondo la traccia "Esecuzione Remota":
+## How it works
 
-- **server** (`src/server.c`): resta in ascolto di connessioni dai
-  client su un socket Unix (`/tmp/esecuzione_remota.sock`). Per ogni
-  client crea con `fork()` un processo **esecutore**, che da quel
-  momento gestisce in autonomia tutta la comunicazione con quel
-  client.
-- **esecutore**: riceve comandi dal client, li esegue con
-  `fork()` + `execvp()` (mai `system()`), e rispedisce l'output al
-  client. Supporta comandi con argomenti (tramite `strtok`).
-- **client** (`src/client.c`): si connette al server, invia comandi
-  inseriti dall'utente e ne mostra l'output.
-
-La comunicazione client-server e client-esecutore avviene
-esclusivamente tramite socket Unix (stream), nel rispetto delle
-specifiche (nessun file su disco usato per lo scambio dati).
-
-## Compilazione
-
-```sh
-./run.sh build
+```
+client ──socket──> server ──fork()──> executor (one per client)
+                                         └─ fork() + execvp() for each command
 ```
 
-Crea gli eseguibili `bin/server` e `bin/client`.
+- The **server** listens on `/tmp/esecuzione_remota.sock`. For every new connection it forks an **executor** process and goes back to `accept()`.
+- The **executor** owns that client from then on. It reads a command, splits it into arguments with `strtok`, runs it with `fork()` + `execvp()` (never `system()`), and sends the output back.
+- The **client** reads commands from the user, sends them and prints the output. Typing `exit` closes both the client and its executor.
 
-## Esecuzione
+All data goes through stream sockets; no files are used to exchange data.
 
-In un terminale, avviare il server:
+## Shutdown
 
-```sh
-./run.sh server
+Only `SIGTERM` stops the server. When it arrives, the server tells every live executor to stop. An executor that is in the middle of a command kills it first, then closes its client connection. The server waits for all of them before removing the socket file and exiting.
+
+`SIGINT` and `SIGQUIT` (Ctrl-C, Ctrl-\\) are ignored by every process in the application.
+
+There is no busy waiting: `accept()`, `read()` and `waitpid()` all block.
+
+[TODO: one line on what was hardest, e.g. handling SIGTERM while an executor is blocked on a running command.]
+
+## Build and run
+
+Linux (or WSL), GCC:
+
+```bash
+./run.sh build      # builds bin/server and bin/client
+./run.sh server     # terminal 1
+./run.sh client     # terminal 2, 3, ... (several clients at once)
 ```
 
-In uno o più altri terminali, avviare uno o più client:
+Then type commands in a client, for example `ls -l /tmp`. To stop the server:
 
-```sh
-./run.sh client
+```bash
+kill -TERM <server_pid>
 ```
 
-Da ogni client è possibile inserire comandi shell (anche con
-argomenti, es. `ls -l /tmp`) da eseguire in remoto. Digitando `exit`
-il client e il relativo esecutore terminano.
+`./run.sh clean` removes the binaries and any leftover socket file.
 
-## Terminazione dell'applicazione
+The code compiles with `-Wall -Wextra -std=c11` without warnings and needs neither root nor a graphical environment.
 
-Il server termina solo se riceve **SIGTERM**:
+## Files
 
-```sh
-kill -TERM <pid_server>
-```
+| File | Contents |
+| --- | --- |
+| `src/server.c` | Server and executor processes, signal handling |
+| `src/client.c` | Interactive client |
+| `src/common.h` | Socket path, buffer sizes and the `exit` command |
+| `run.sh` | Build, run and clean script |
 
-Prima di terminare, il server avvisa tutti gli esecutori ancora
-attivi (che chiudono la connessione con il proprio client e
-terminano) e attende la terminazione di tutti loro prima di uscire e
-rimuovere il file di socket.
+## License
 
-SIGINT e SIGQUIT (Ctrl-C, Ctrl-\\) sono ignorati da tutti i processi
-dell'applicazione.
-
-## Pulizia
-
-```sh
-./run.sh clean
-```
-
-Rimuove gli eseguibili compilati e l'eventuale file di socket
-residuo in `/tmp`.
-
-## Note implementative
-
-- Compilato con `-Wall -Wextra -std=c11`, nessun warning.
-- Nessuna attesa attiva: `accept()`, `read()` e `wait()/waitpid()`
-  sono usate in modalità bloccante.
-- L'esecutore gestisce correttamente la richiesta di terminazione
-  del server anche mentre è in esecuzione un comando: il comando in
-  corso viene terminato (SIGTERM) per consentire una chiusura rapida
-  dell'intera applicazione.
-- L'applicazione non richiede privilegi di root né un ambiente
-  grafico; il socket viene creato in `/tmp`.
-
+MIT
