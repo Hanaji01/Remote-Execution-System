@@ -23,8 +23,6 @@ Only `SIGTERM` stops the server. When it arrives, the server tells every live ex
 
 There is no busy waiting: `accept()`, `read()` and `waitpid()` all block.
 
-[TODO: one line on what was hardest, e.g. handling SIGTERM while an executor is blocked on a running command.]
-
 ## Build and run
 
 Linux (or WSL), GCC:
